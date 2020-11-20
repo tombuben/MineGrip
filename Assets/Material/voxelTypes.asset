@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ff53b85d85a157469fa40589fb1a1de, type: 3}
+  m_Name: voxelTypes
+  m_EditorClassIdentifier: 
+  atlas: {fileID: 2800000, guid: 9e542ff781705cf49a7f67485464312d, type: 3}
+  texturePerSide: 8
+  typeTextures: 3f0000003f0000003f0000003f0000003f0000003f00000038000000390000003a0000003b0000003c0000003d000000030000000c000000150000001e00000027000000310000002000000029000000320000003b000000040000000d0000003c0000003c0000003c0000003c0000003c0000003c000000

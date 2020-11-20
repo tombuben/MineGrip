@@ -1,5 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class CubeFaces
@@ -38,13 +39,64 @@ public class CubeFaces
         6, 7, 3}
     };
 
+    public static readonly Vector3[] WallDirection =
+    {
+        new Vector3(0.0f, 0.0f, 1.0f), // front
+        new Vector3(1.0f, 0.0f, 0.0f), // right
+        new Vector3(0.0f, 0.0f, -1.0f), // back
+        new Vector3(-1.0f, 0.0f, 0.0f), // left
+        new Vector3(0.0f, -1.0f, 0.0f), // bottom
+        new Vector3(0.0f, 1.0f, 0.0f), // top
+    };
+
     public static readonly Vector2[] UVs =
     {
-        new Vector2(1.0f, 0.0f),
-        new Vector2(0.0f, 0.0f),
-        new Vector2(0.0f, 1.0f),
-        new Vector2(0.0f, 1.0f),
-        new Vector2(1.0f, 1.0f),
-        new Vector2(1.0f, 0.0f),
+        new Vector2(1.0f, 0.0f), // vertex (0,0)
+        new Vector2(0.0f, 0.0f), // vertex (1,0)
+        new Vector2(0.0f, 1.0f), // vertex (1,1)
+        new Vector2(0.0f, 1.0f), // vertex (1,1)
+        new Vector2(1.0f, 1.0f), // vertex (0,1)
+        new Vector2(1.0f, 0.0f), // vertex (0,0)
     };
+
+    public static Vector2[] getUVsOfRect(Rect rect)
+    {
+        return new Vector2[]
+        {
+            new Vector2(rect.xMax, rect.yMin),
+            rect.min,
+            new Vector2(rect.xMin, rect.yMax),
+            new Vector2(rect.xMin, rect.yMax),
+            rect.max,
+            new Vector2(rect.xMax, rect.yMin),
+        };
+    }
+
+    public static readonly List<int>[] FaceMap = GenerateFaceMap();
+
+    private static List<int>[] GenerateFaceMap()
+    {
+        var faces = new List<int>[63];
+        for (var i = 0; i < 0b111111; i++)
+        {
+            faces[i] = GetFacesFromMask(i);
+        }
+
+        return faces;
+    }
+    
+    private static List<int> GetFacesFromMask(int mask)
+    {
+        var faces = new List<int>();
+        for (var i = 0; i < 6; i++)
+        {
+            if (( mask >> i & 1) == 1)
+            {
+                faces.AddRange(Enumerable.Range(0, 6).Select(x => FaceIndices[0, x]));
+            }
+        }
+
+        return faces;
+    } 
+
 }

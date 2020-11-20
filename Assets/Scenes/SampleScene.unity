@@ -152,6 +152,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 084e7304059b28245802ca3078f7f4f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  voxelTypes: {fileID: 11400000, guid: 38f0c94013475ab4cb7cbe7c25b7fe74, type: 2}
 --- !u!23 &173688556
 MeshRenderer:
   m_ObjectHideFlags: 0
