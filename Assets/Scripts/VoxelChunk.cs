@@ -4,43 +4,65 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-
+/// <summary>
+/// Object representing a single chunk of voxels.
+/// Stores a 3d array of voxels and is able to generate a mesh from it  
+/// </summary>
 [RequireComponent(typeof(MeshFilter)), RequireComponent(typeof(MeshRenderer))]
 public class VoxelChunk : MonoBehaviour
 {
     public VoxelTypes voxelTypes;
-    
+    public Vector3Int worldPosition;
+    public WorldGenerator generator;
+
     private MeshRenderer _meshRenderer;
     private MeshFilter _meshFilter;
     
     private const uint ChunkSize = 16;
     
-    private sbyte[,,] _voxels = new sbyte[ChunkSize, ChunkSize, ChunkSize];
+    private sbyte[,,] _voxels;
 
     private void Awake()
     {
-        if (!SystemInfo.supportsComputeShaders)
-        {
-            Debug.LogError("No support for compute shaders found, constructing geometry on the CPU!");
-            Destroy(this);
-            return;
-        }
-        
-        //Init array
-        Array.Clear(_voxels, 0, _voxels.Length);
-        
-        
-        for (var x = 0; x < ChunkSize; x++)
-            for (var y = 0; y < ChunkSize; y++)
-                for (var z = 0; z < ChunkSize; z++)
-                    if (x + y + z <= ChunkSize)
-                        _voxels[x, y, z] = 2;
-        
-        
         _meshFilter = GetComponent<MeshFilter>();
-        _meshFilter.mesh = CreateMesh();
+        
+        GenerateVoxels();
+        RegenerateMesh();
     }
 
+    /// <summary>
+    /// Generates the voxel data
+    /// </summary>
+    public void GenerateVoxels()
+    {
+        _voxels = new sbyte[ChunkSize, ChunkSize, ChunkSize];
+        
+        if (generator != null)
+            generator.GenerateChunk(worldPosition.x, worldPosition.y, worldPosition.z, ref _voxels);
+        else
+        {
+            //Init array
+            Array.Clear(_voxels, 0, _voxels.Length);
+            for (var x = 0; x < ChunkSize; x++)
+            {
+                for (var y = 0; y < ChunkSize; y++)
+                {
+                    _voxels[x, y, 0] = 1;
+                    _voxels[x, y, 10] = 1;
+                }
+            }
+        }
+    }
+    
+    /// <summary>
+    /// Regenerates the current mesh based on the voxel data
+    /// </summary>
+    public void RegenerateMesh()
+    {
+        Destroy(_meshFilter.mesh);
+        _meshFilter.mesh = CreateMesh();
+    } 
+    
     
     /// <summary>
     /// Create a single mesh from the _voxels data structure.
