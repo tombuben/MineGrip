@@ -18,7 +18,7 @@ public class VoxelChunk : MonoBehaviour
     private MeshRenderer _meshRenderer;
     private MeshFilter _meshFilter;
     
-    private const uint ChunkSize = 16;
+    private const uint ChunkSize = 32;
     
     private sbyte[,,] _voxels;
 
@@ -38,7 +38,7 @@ public class VoxelChunk : MonoBehaviour
         _voxels = new sbyte[ChunkSize, ChunkSize, ChunkSize];
         
         if (generator != null)
-            generator.GenerateChunk(worldPosition.x, worldPosition.y, worldPosition.z, ref _voxels);
+            generator.GenerateChunk(worldPosition, ref _voxels);
         else
         {
             //Init array

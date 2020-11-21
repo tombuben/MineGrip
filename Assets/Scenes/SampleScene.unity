@@ -154,7 +154,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   voxelTypes: {fileID: 11400000, guid: 38f0c94013475ab4cb7cbe7c25b7fe74, type: 2}
   worldPosition: {x: 0, y: 0, z: 0}
-  generator: {fileID: 0}
+  generator: {fileID: 1854417779}
 --- !u!23 &173688556
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -420,9 +420,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 680ad11a46004644f87e1f0d4d040955, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  seed: 0
-  noise: {fileID: 0}
   shader: {fileID: 7200000, guid: 5d61839e4706ee2469f72ee7c6d5c5e6, type: 3}
+  generateUsingComputeShaders: 1
 --- !u!4 &1854417780
 Transform:
   m_ObjectHideFlags: 0
