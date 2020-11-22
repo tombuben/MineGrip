@@ -32,7 +32,7 @@ public class VoxelChunk : MonoBehaviour
     {
         _meshRenderer.material = voxelTypes.material;
         GenerateVoxels();
-        RegenerateMesh();
+        _meshFilter.mesh = CreateMesh();
     }
 
     /// <summary>
@@ -53,7 +53,6 @@ public class VoxelChunk : MonoBehaviour
                 for (var y = 0; y < ChunkSize; y++)
                 {
                     Voxels[x, y, 0] = 1;
-                    Voxels[x, y, 10] = 1;
                 }
             }
         }
@@ -78,11 +77,13 @@ public class VoxelChunk : MonoBehaviour
         var vertices = new List<Vector3>();
         var uvs = new List<Vector2>();
 
+        UnityEngine.Profiling.Profiler.BeginSample("CreateMesh.AddingCubes");
         for (var x = 0; x < ChunkSize; x++)
             for (var y = 0; y < ChunkSize; y++)
                 for (var z = 0; z < ChunkSize; z++)
                     if (Voxels[x,y,z] != 0)
                         AddCubeToMesh(new Vector3(x, y, z), Voxels[x,y,z], ref vertices, ref uvs);
+        UnityEngine.Profiling.Profiler.EndSample();
         
         var mesh = new Mesh();
         mesh.vertices = vertices.ToArray();

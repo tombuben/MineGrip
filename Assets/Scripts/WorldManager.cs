@@ -36,13 +36,33 @@ public class WorldManager : MonoBehaviour
                 AddChunk(new Vector3Int(x, 0, z));
     }
 
+
     public void AddChunksAround(Vector3Int playerChunk, int generateDistance)
     {
-        for (var x = playerChunk.x - generateDistance; x < playerChunk.x + generateDistance; ++x)
-            for (var z = playerChunk.z - generateDistance; z < playerChunk.z + generateDistance; ++z)
-                AddChunk(new Vector3Int(x, 0, z));
         
+        StartCoroutine(AddChunksAroundCoroutine(playerChunk, generateDistance));
     }
+    
+    public IEnumerator AddChunksAroundCoroutine(Vector3Int playerChunk, int generateDistance)
+    {
+        var queue = new List<Vector3Int>();
+        for (var x = playerChunk.x - generateDistance; x < playerChunk.x + generateDistance; ++x)
+        {
+            for (var z = playerChunk.z - generateDistance; z < playerChunk.z + generateDistance; ++z)
+            {
+                var chunkPosition = new Vector3Int(x, 0, z);
+                if (!_chunks.ContainsKey(chunkPosition)) queue.Add(chunkPosition);
+            }
+        }
+
+        foreach (var chunkPosition in queue)
+        {
+            AddChunk(chunkPosition);
+            yield return null;
+        }
+    }
+    
+    
     
     private void AddChunk(Vector3Int worldPosition)
     {
