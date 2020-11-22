@@ -3,6 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+
+/// <summary>
+/// Helper class containing the vertices and UV's of a cube
+/// in a way we can pick and choose separate faces for generation
+/// </summary>
 public class CubeFaces
 {
     public static readonly Vector3[] Vertices = {
@@ -59,6 +64,11 @@ public class CubeFaces
         new Vector2(1.0f, 0.0f), // vertex (0,0)
     };
 
+    /// <summary>
+    /// Returns a UV array which maps a specific rect onto the face the UVs represent
+    /// </summary>
+    /// <param name="rect">A rect of UVs</param>
+    /// <returns></returns>
     public static Vector2[] getUVsOfRect(Rect rect)
     {
         return new Vector2[]

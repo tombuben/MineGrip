@@ -20,12 +20,17 @@ public class VoxelChunk : MonoBehaviour
     
     private const uint ChunkSize = 32;
     
-    private sbyte[,,] _voxels;
+    public sbyte[,,] Voxels;
 
     private void Awake()
     {
         _meshFilter = GetComponent<MeshFilter>();
-        
+        _meshRenderer = GetComponent<MeshRenderer>();
+    }
+
+    private void Start()
+    {
+        _meshRenderer.material = voxelTypes.material;
         GenerateVoxels();
         RegenerateMesh();
     }
@@ -35,20 +40,20 @@ public class VoxelChunk : MonoBehaviour
     /// </summary>
     public void GenerateVoxels()
     {
-        _voxels = new sbyte[ChunkSize, ChunkSize, ChunkSize];
+        Voxels = new sbyte[ChunkSize, ChunkSize, ChunkSize];
         
         if (generator != null)
-            generator.GenerateChunk(worldPosition, ref _voxels);
+            generator.GenerateChunk(worldPosition, ref Voxels);
         else
         {
             //Init array
-            Array.Clear(_voxels, 0, _voxels.Length);
+            Array.Clear(Voxels, 0, Voxels.Length);
             for (var x = 0; x < ChunkSize; x++)
             {
                 for (var y = 0; y < ChunkSize; y++)
                 {
-                    _voxels[x, y, 0] = 1;
-                    _voxels[x, y, 10] = 1;
+                    Voxels[x, y, 0] = 1;
+                    Voxels[x, y, 10] = 1;
                 }
             }
         }
@@ -76,8 +81,8 @@ public class VoxelChunk : MonoBehaviour
         for (var x = 0; x < ChunkSize; x++)
             for (var y = 0; y < ChunkSize; y++)
                 for (var z = 0; z < ChunkSize; z++)
-                    if (_voxels[x,y,z] != 0)
-                        AddCubeToMesh(new Vector3(x, y, z), _voxels[x,y,z], ref vertices, ref uvs);
+                    if (Voxels[x,y,z] != 0)
+                        AddCubeToMesh(new Vector3(x, y, z), Voxels[x,y,z], ref vertices, ref uvs);
         
         var mesh = new Mesh();
         mesh.vertices = vertices.ToArray();
@@ -109,7 +114,7 @@ public class VoxelChunk : MonoBehaviour
                 pos.y + CubeFaces.WallDirection[face].y >= ChunkSize ||
                 pos.z + CubeFaces.WallDirection[face].z < 0 ||
                 pos.z + CubeFaces.WallDirection[face].z >= ChunkSize ||
-                _voxels[
+                Voxels[
                     (int)(pos.x + CubeFaces.WallDirection[face].x),
                     (int)(pos.y + CubeFaces.WallDirection[face].y),
                     (int)(pos.z + CubeFaces.WallDirection[face].z)] == 0)
@@ -119,7 +124,6 @@ public class VoxelChunk : MonoBehaviour
                     var index = CubeFaces.FaceIndices[face, i];
                     vertices.Add(CubeFaces.Vertices[index] + pos);
                     uvs.Add(voxelTypes.AtlasCubeFaceUvs[voxelTypes.GetAtlasPosition(type, face), i]);
-                    //uvs.Add(CubeFaces.UVs[i]);
                 }      
             }
         }

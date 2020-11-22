@@ -43,9 +43,20 @@ int3 world_position;
 [numthreads(8,1,8)]
 void CSMain (uint3 id : SV_DispatchThreadID)
 {
-    float noise_value;
-    Unity_GradientNoise_float(id.xz + world_position.xz * buffer_size.xz, 0.1, noise_value);
+    //cull the threads outside the buffer
+    if (id.x >= buffer_size.x || id.y >= 1 || id.z >= buffer_size.z)
+        return;
 
+    //Voxel space column position
+    int3 column_position;
+    column_position.x = (int)id.x + world_position.x * buffer_size.x;
+    column_position.z = (int)id.z + world_position.z * buffer_size.z;
+
+    
+    float noise_value;
+    Unity_GradientNoise_float(column_position.xz, 0.05, noise_value);
+    noise_value = noise_value * 0.5 + 0.25;
+    
     for (int y = 0; y < buffer_size.y; y++)
     {
         y += world_position.y * buffer_size.y;

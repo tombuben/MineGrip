@@ -8,6 +8,7 @@ using UnityEngine.U2D;
 public class VoxelTypes : ScriptableObject
 {
     public Texture2D atlas;
+    public Material material;
     
     public int texturePerSide;
     

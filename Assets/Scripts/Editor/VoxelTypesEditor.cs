@@ -7,6 +7,7 @@ using UnityEditor;
 public class VoxelTypesEditor : Editor
 {
     private SerializedProperty _textureAtlas;
+    private SerializedProperty _material;
     private SerializedProperty _texturePerSide;
     private SerializedProperty _typeTextures;
 
@@ -16,6 +17,7 @@ public class VoxelTypesEditor : Editor
     void OnEnable()
     {
         _textureAtlas = serializedObject.FindProperty("atlas");
+        _material = serializedObject.FindProperty("material");
         _texturePerSide = serializedObject.FindProperty("texturePerSide");
         _typeTextures = serializedObject.FindProperty("typeTextures");
         _voxelTypes = (VoxelTypes) target;
@@ -25,6 +27,7 @@ public class VoxelTypesEditor : Editor
     {
         serializedObject.Update();
         EditorGUILayout.PropertyField(_textureAtlas);
+        EditorGUILayout.PropertyField(_material);
         EditorGUILayout.PropertyField(_texturePerSide);
 
 
