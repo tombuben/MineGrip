@@ -16,16 +16,21 @@ public class PlayerController : MonoBehaviour
     public float playerWidth = 0.35f;
 
     public GameObject cursorBlock;
+    private GameObject _cursor;
     
     private bool _isGrounded = false;
     private Vector3 _moveDirection;
-    private Vector3Int currentChunk;
+    private Vector3 _voxelSpacePosition;
+    private Vector3Int _voxelGridPosition;
+    private Vector3Int _currentChunk;
     
     private void Awake()
     {
         _controls = new Controls();
-        Application.targetFrameRate = 60;
         //_controls.Player.Jump.performed += context => Jump(context);
+
+        _cursor = Instantiate(cursorBlock);
+        //_cursor.SetActive(false);
     }
 
     private void OnEnable()
@@ -74,11 +79,24 @@ public class PlayerController : MonoBehaviour
     // Update is called once per frame
     private void Update()
     {
-        Move(_controls.Player.Move.ReadValue<Vector2>());
-        Look(_controls.Player.Look.ReadValue<Vector2>());
+        CheckPosition();
+        
+        HandleInput();
 
+        UpdateCursor();
+        
+        var chunk = voxelWorld.GetVoxelPointChunk(_voxelGridPosition);
+        if (chunk != _currentChunk)
+        {
+            _currentChunk = chunk;
+            voxelWorld.AddChunksAround(chunk, 3);
+        }
+    }
+
+    private void CheckPosition()
+    {
         var pos = transform.position;
-        Vector3[] positions = new[]
+        var positions = new Vector3[]
         {
             new Vector3(pos.x - playerWidth, pos.y, pos.z - playerWidth),
             new Vector3(pos.x - playerWidth, pos.y, pos.z + playerWidth),
@@ -95,9 +113,14 @@ public class PlayerController : MonoBehaviour
             if (voxelWorld.IsSolidPoint(voxelCornerPoint)) _isGrounded = true;
         }
         
-        var point = voxelWorld.GetVoxelPoint(pos);
-        var voxelPoint = Vector3Int.FloorToInt(point);
-        
+        _voxelSpacePosition = voxelWorld.GetVoxelPoint(pos);
+        _voxelGridPosition = Vector3Int.FloorToInt(_voxelSpacePosition);
+    }
+
+    private void HandleInput()
+    {
+        Move(_controls.Player.Move.ReadValue<Vector2>());
+        Look(_controls.Player.Look.ReadValue<Vector2>());
         
         if (!_isGrounded)
         {
@@ -107,7 +130,7 @@ public class PlayerController : MonoBehaviour
         {
             _moveDirection.y = 0;
             var position = transform.position;
-            position.y = voxelWorld.GetWorldPoint(voxelPoint).y + 0.99f;
+            position.y = voxelWorld.GetWorldPoint(_voxelGridPosition).y + 0.99f;
             transform.position = position;
         }
 
@@ -146,15 +169,82 @@ public class PlayerController : MonoBehaviour
             Application.Quit();
 #endif
 #if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
+            UnityEditor.EditorApplication.isPaused = true;
+            //UnityEditor.EditorApplication.isPlaying = false;
 #endif
         }
+    }
+    
+    private void UpdateCursor()
+    {
+        var cameraTransform = playerCamera.transform;
+        var rayStart = cameraTransform.position;
+        var rayDirection = cameraTransform.forward;
+        var p0 = rayStart;
+        var dir = rayDirection;
+        
+        var t_0 = new Vector3(float.NaN, float.NaN, float.NaN);
+        var t_1 = new Vector3(float.NaN, float.NaN, float.NaN);
+        var dt = new Vector3(float.NaN, float.NaN, float.NaN);
+        
+        //integer intersections with the axis planes
 
-        var chunk = voxelWorld.GetVoxelPointChunk(voxelPoint);
-        if (chunk != currentChunk)
+        for (int dim = 0; dim < 3; dim++)
         {
-            currentChunk = chunk;
-            voxelWorld.AddChunksAround(chunk, 3);
+            if (rayDirection[dim] != 0.0f) 
+            {
+                // We're looking for first two integer intersections with the x plane t_x in the direction of the ray
+                var p_first = dir[dim] > 0 ? Mathf.Ceil(p0[dim]) : Mathf.Floor(p0[dim]);
+                var p_next = dir[dim] > 0 ? p_first + 1 : p_first - 1;
+
+                // Parametric equation of line:
+                // x = x0 + dir_x * t   ==>   t = (x - x0) / dir_x
+                t_0[dim] = (p_first - p0[dim]) / dir[dim];
+                t_1[dim] = (p_next - p0[dim]) / dir[dim];
+
+                // how much must T move to get to the next integer value
+                dt[dim] = t_1[dim] - t_0[dim];
+            }
         }
+
+        const float cursorMaxT = 5.0f;
+
+        var nextT = t_0;
+        var t = 0.0f;
+        
+        var counter = 0;
+        while (t < cursorMaxT)
+        {
+            if (counter++ > 100)
+            {
+                Debug.Log("Infinite loop!");
+                break;
+            }
+            
+            
+            var minDim = 0;
+            t = nextT[0];
+            for (var dim = 1; dim < 3; dim++)
+            {
+                if (float.IsNaN(nextT[dim])) continue;
+                
+                if (nextT[dim] < t)
+                {
+                    minDim = dim;
+                    t = nextT[minDim];
+                }
+            }
+            nextT[minDim] += dt[minDim];
+            
+            var t_point = p0 + dir * (t+0.01f);
+            var voxelPoint = Vector3Int.FloorToInt(voxelWorld.GetVoxelPoint(t_point));
+            if (voxelWorld.IsSolidPoint(voxelPoint))
+            {
+                _cursor.SetActive(true);
+                _cursor.transform.position = voxelPoint;
+                break;
+            }
+        }
+        if (t >= cursorMaxT) _cursor.SetActive(false);
     }
 }

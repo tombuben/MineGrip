@@ -112,7 +112,10 @@ public class WorldManager : MonoBehaviour
             }
         }
 
-        var isSolid = _chunks[chunkToCheck].Voxels[coordsInsideChunk.x, coordsInsideChunk.y, coordsInsideChunk.z] > 0;
+        if (!_chunks.ContainsKey(chunkToCheck)) return false;
+        
+        var chunk = _chunks[chunkToCheck];
+        var isSolid = chunk.Voxels[coordsInsideChunk.x, coordsInsideChunk.y, coordsInsideChunk.z] > 0;
         return isSolid;
     }
 
