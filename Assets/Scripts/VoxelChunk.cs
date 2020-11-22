@@ -127,7 +127,5 @@ public class VoxelChunk : MonoBehaviour
                 }      
             }
         }
-        
     }
-    
 }
