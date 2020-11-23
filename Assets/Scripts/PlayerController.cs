@@ -15,22 +15,34 @@ public class PlayerController : MonoBehaviour
     public float gravity = 9.81f;
     public float playerWidth = 0.35f;
 
-    public GameObject cursorBlock;
+    public GameObject cursorPrefab;
     private GameObject _cursor;
+    private Transform _cursorScale;
     
     private bool _isGrounded = false;
     private Vector3 _moveDirection;
     private Vector3 _voxelSpacePosition;
     private Vector3Int _voxelGridPosition;
     private Vector3Int _currentChunk;
+
+    private bool _blockSelected;
+    private Vector3Int _blockPosToBreak;
+    private Vector3Int _blockPosToBuild;
+
+    private Vector3Int _currentlyBreaking;
+    private float _currentlyBreakingDurability;
+    private float _currentlyBreakingDamage;
     
+
     private void Awake()
     {
         _controls = new Controls();
         //_controls.Player.Jump.performed += context => Jump(context);
 
-        _cursor = Instantiate(cursorBlock);
-        //_cursor.SetActive(false);
+        _cursor = Instantiate(cursorPrefab);
+        _cursorScale = _cursor.transform.GetChild(0);
+        Debug.Log("scale: " + _cursorScale.localScale);
+        _cursor.SetActive(false);
     }
 
     private void OnEnable()
@@ -44,7 +56,7 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// Move the player in the direction of the camera
+    /// Sets the player movement direction
     /// </summary>
     /// <param name="controllerValue">A Vector2 value of controller</param>
     private void Move(Vector2 controllerValue)
@@ -54,6 +66,9 @@ public class PlayerController : MonoBehaviour
         _moveDirection.z = worldDirection.z;
     }
 
+    /// <summary>
+    /// Sets the player's jump direction
+    /// </summary>
     private void Jump()
     {
         _moveDirection.y = 2;
@@ -73,7 +88,19 @@ public class PlayerController : MonoBehaviour
         var rotationY = verticalSensitivity * controllerValue.y * Time.deltaTime;
  
         transform.Rotate(0,rotationX,0);
-        playerCamera.transform.Rotate(-rotationY, 0, 0);
+        
+        var transform1 = playerCamera.transform;
+        var yaw = transform1.eulerAngles.x;
+        yaw -= rotationY;
+        if ((yaw + 180)%360 < 180-85)
+        {
+            yaw = -85;
+        }
+        if ((yaw + 180)%360 > 180+85)
+        {
+            yaw = 85;
+        }
+        transform1.eulerAngles = new Vector3(yaw, transform1.eulerAngles.y, 0);
     }
 
     // Update is called once per frame
@@ -81,9 +108,22 @@ public class PlayerController : MonoBehaviour
     {
         CheckPosition();
         
-        HandleInput();
+        HandleMovement();
 
         UpdateCursor();
+
+        HandleBuildBreak();
+        
+        if (_controls.Player.Escape.triggered)
+        {
+#if UNITY_STANDALONE
+            Application.Quit();
+#endif
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.isPaused = true;
+            //UnityEditor.EditorApplication.isPlaying = false;
+#endif
+        }
         
         var chunk = voxelWorld.GetVoxelPointChunk(_voxelGridPosition);
         if (chunk != _currentChunk)
@@ -93,6 +133,9 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Update the positions that are checked
+    /// </summary>
     private void CheckPosition()
     {
         var pos = transform.position;
@@ -117,7 +160,10 @@ public class PlayerController : MonoBehaviour
         _voxelGridPosition = Vector3Int.FloorToInt(_voxelSpacePosition);
     }
 
-    private void HandleInput()
+    /// <summary>
+    /// Hanndle the different inputs
+    /// </summary>
+    private void HandleMovement()
     {
         Move(_controls.Player.Move.ReadValue<Vector2>());
         Look(_controls.Player.Look.ReadValue<Vector2>());
@@ -133,7 +179,7 @@ public class PlayerController : MonoBehaviour
             position.y = voxelWorld.GetWorldPoint(_voxelGridPosition).y + 0.99f;
             transform.position = position;
         }
-
+        
         if (_controls.Player.Jump.triggered && _isGrounded)
         {
             Jump();
@@ -162,19 +208,11 @@ public class PlayerController : MonoBehaviour
             
             transform.position += _moveDirection * (Time.deltaTime * walkSpeed);
         }
-
-        if (_controls.Player.Escape.triggered)
-        {
-#if UNITY_STANDALONE
-            Application.Quit();
-#endif
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPaused = true;
-            //UnityEditor.EditorApplication.isPlaying = false;
-#endif
-        }
     }
     
+    /// <summary>
+    /// Updates the position of the cursor in scene - sends a ray
+    /// </summary>
     private void UpdateCursor()
     {
         var cameraTransform = playerCamera.transform;
@@ -215,13 +253,12 @@ public class PlayerController : MonoBehaviour
         var counter = 0;
         while (t < cursorMaxT)
         {
-            if (counter++ > 100)
+            if (counter++ > cursorMaxT * 3 + 1)
             {
-                Debug.Log("Infinite loop!");
+                Debug.Log("Too many steps!");
                 break;
             }
-            
-            
+
             var minDim = 0;
             t = nextT[0];
             for (var dim = 1; dim < 3; dim++)
@@ -240,11 +277,60 @@ public class PlayerController : MonoBehaviour
             var voxelPoint = Vector3Int.FloorToInt(voxelWorld.GetVoxelPoint(t_point));
             if (voxelWorld.IsSolidPoint(voxelPoint))
             {
+                _blockSelected = true;
+                _blockPosToBreak = voxelPoint;
+                
+                var t_build = p0 + dir * (t-0.01f);
+                _blockPosToBuild = Vector3Int.FloorToInt(voxelWorld.GetVoxelPoint(t_build));
+
                 _cursor.SetActive(true);
-                _cursor.transform.position = voxelPoint;
+                _cursor.transform.position = _blockPosToBreak;
                 break;
             }
         }
-        if (t >= cursorMaxT) _cursor.SetActive(false);
+
+        if (t >= cursorMaxT)
+        {
+            _blockSelected = false;
+            _cursor.SetActive(false);
+        }
+    }
+
+    private void HandleBuildBreak()
+    {
+        if (_blockSelected && _controls.Player.Build.triggered)
+        {
+            voxelWorld.SetVoxel(_blockPosToBuild, 1);
+        }
+        else if (_blockSelected && _controls.Player.Break.ReadValue<float>() > 0)
+        {
+            if (_currentlyBreaking != _blockPosToBreak)
+            {
+                _currentlyBreaking = _blockPosToBreak;
+                _currentlyBreakingDamage = 0;
+
+                var currentlyBreakingType = voxelWorld.GetVoxelType(_currentlyBreaking);
+                _currentlyBreakingDurability = voxelWorld.voxelTypes.typeDurability[currentlyBreakingType];
+            }
+            else if (_currentlyBreakingDurability >= 0)
+            {
+                _currentlyBreakingDamage += Time.deltaTime;
+                var scale = 1.1f - (_currentlyBreakingDamage / _currentlyBreakingDurability) * 0.1f;
+                _cursorScale.localScale = new Vector3(scale,scale,scale);
+                if (_currentlyBreakingDamage >= _currentlyBreakingDurability)
+                {
+                    _currentlyBreakingDamage = 0;
+                    scale = 1.1f;
+                    _cursorScale.localScale = new Vector3(scale,scale,scale);
+                    voxelWorld.SetVoxel(_blockPosToBreak, 0);
+                }
+            }
+        }
+        else
+        {
+            _currentlyBreakingDamage = 0;
+            var scale = 1.1f;
+            _cursorScale.localScale = new Vector3(scale,scale,scale);
+        }
     }
 }

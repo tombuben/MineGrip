@@ -17,7 +17,8 @@ public class VoxelTypes : ScriptableObject
     /// the atlas position of each of the sides of the voxel cube textures
     /// </summary>
     public List<int> typeTextures = new List<int>(){0,0,0,0,0,0};
-
+    public List<float> typeDurability = new List<float>() {0};
+    
     private void OnEnable()
     {
         var textureCount = texturePerSide * texturePerSide;

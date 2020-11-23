@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
@@ -10,6 +11,7 @@ public class VoxelTypesEditor : Editor
     private SerializedProperty _material;
     private SerializedProperty _texturePerSide;
     private SerializedProperty _typeTextures;
+    private SerializedProperty _typeDurability;
 
     private bool _texturesFoldout = false;
     private VoxelTypes _voxelTypes;
@@ -20,12 +22,14 @@ public class VoxelTypesEditor : Editor
         _material = serializedObject.FindProperty("material");
         _texturePerSide = serializedObject.FindProperty("texturePerSide");
         _typeTextures = serializedObject.FindProperty("typeTextures");
+        _typeDurability = serializedObject.FindProperty("typeDurability");
         _voxelTypes = (VoxelTypes) target;
     }
-    
+
     public override void OnInspectorGUI()
-    {
+    { 
         serializedObject.Update();
+        
         EditorGUILayout.PropertyField(_textureAtlas);
         EditorGUILayout.PropertyField(_material);
         EditorGUILayout.PropertyField(_texturePerSide);
@@ -52,6 +56,10 @@ public class VoxelTypesEditor : Editor
             subrect.x += previewSize + padding;
             GUI.Label(subrect, "Y+", style);
             subrect.x += previewSize + padding;
+            subrect.width = rect.width - subrect.x;
+            style.alignment = TextAnchor.MiddleLeft;
+            GUI.Label(subrect, "Durability", style);
+            subrect.x += previewSize + padding;
             
             for (var typeNum = 1; typeNum < _typeTextures.arraySize / 6; typeNum++)
             {
@@ -61,6 +69,7 @@ public class VoxelTypesEditor : Editor
             if (GUILayout.Button("+"))
             {
                 _typeTextures.arraySize += 6;
+                _typeDurability.arraySize += 1;
             }
         }
 
@@ -91,13 +100,23 @@ public class VoxelTypesEditor : Editor
             subrect.x += previewSize + padding;
         }
 
-        subrect.x += previewSize / 2;
+        
+        var durability = _typeDurability.GetArrayElementAtIndex(typeNum);
+        var durRect = new Rect(subrect);
+        durRect.height = previewSize / 2.0f;
+        durRect.width = previewSize / 2.0f;
+        durRect.y += previewSize / 4.0f;
+        durRect.x += previewSize / 4.0f;
+        EditorGUI.PropertyField(durRect, durability, new GUIContent());
+        
+        subrect.x += previewSize + padding * 2;
         if (GUI.Button(subrect, "-"))
         {
             for (var face = 0; face < 6; face++)
             {
                 _typeTextures.DeleteArrayElementAtIndex(typeNum*6);
             }
+            _typeDurability.DeleteArrayElementAtIndex(typeNum);
         }
 
         GUILayout.Space(padding * 2);

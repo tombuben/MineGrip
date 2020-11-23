@@ -95,11 +95,11 @@ public class WorldManager : MonoBehaviour
     }
     
     /// <summary>
-    /// Check if a voxel point is solid
+    /// Returns a type of voxel at given point
     /// </summary>
-    /// <param name="voxelPoint">Point to check</param>
-    /// <returns>Is the point solid</returns>
-    public bool IsSolidPoint(Vector3Int voxelPoint)
+    /// <param name="voxelPoint">voxel world space coordinates of the point</param>
+    /// <returns>Type of voxel at given point</returns>
+    public sbyte GetVoxelType(Vector3Int voxelPoint)
     {
         var chunkToCheck = voxelPoint/ chunkSize;
         var coordsInsideChunk = new Vector3Int(voxelPoint.x % chunkSize, voxelPoint.y % chunkSize, voxelPoint.z % chunkSize);
@@ -112,11 +112,20 @@ public class WorldManager : MonoBehaviour
             }
         }
 
-        if (!_chunks.ContainsKey(chunkToCheck)) return false;
+        if (!_chunks.ContainsKey(chunkToCheck)) return 0;
         
         var chunk = _chunks[chunkToCheck];
-        var isSolid = chunk.Voxels[coordsInsideChunk.x, coordsInsideChunk.y, coordsInsideChunk.z] > 0;
-        return isSolid;
+        return chunk.Voxels[coordsInsideChunk.x, coordsInsideChunk.y, coordsInsideChunk.z];
+    }
+    
+    /// <summary>
+    /// Check if a voxel point is solid
+    /// </summary>
+    /// <param name="voxelPoint">Point to check</param>
+    /// <returns>Is the point solid</returns>
+    public bool IsSolidPoint(Vector3Int voxelPoint)
+    {
+        return GetVoxelType(voxelPoint) > 0;
     }
 
     /// <summary>
@@ -150,17 +159,27 @@ public class WorldManager : MonoBehaviour
         }
         return chunkToCheck;
     }
-
-
-    // Start is called before the first frame update
-    void Start()
+    
+    /// <summary>
+    /// Sets a given voxel to a given type and regenerates the chunk mesh.
+    /// </summary>
+    /// <param name="voxelPoint"></param>
+    /// <param name="type"></param>
+    public void SetVoxel(Vector3Int voxelPoint, sbyte type)
     {
+        var chunkToCheck = voxelPoint/ chunkSize;
+        var coordsInsideChunk = new Vector3Int(voxelPoint.x % chunkSize, voxelPoint.y % chunkSize, voxelPoint.z % chunkSize);
+        for (var i = 0; i < 3; i++)
+        {
+            if (coordsInsideChunk[i] < 0)
+            {
+                chunkToCheck[i] -= 1;
+                coordsInsideChunk[i] += chunkSize;
+            }
+        }
         
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
+        var chunk = _chunks[chunkToCheck];
+        chunk.Voxels[coordsInsideChunk.x, coordsInsideChunk.y, coordsInsideChunk.z] = type;
+        chunk.RegenerateMesh();
     }
 }
