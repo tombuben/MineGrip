@@ -24,7 +24,8 @@ public class WorldManager : MonoBehaviour
             return vec.x ^ vec.y << 2 ^ vec.z >> 2;
         }
     }
-    private Dictionary<Vector3Int, VoxelChunk> _chunks = new Dictionary<Vector3Int, VoxelChunk>(new Vector3IntComparer());
+
+    public Dictionary<Vector3Int, VoxelChunk> chunks = new Dictionary<Vector3Int, VoxelChunk>(new Vector3IntComparer());
 
     
     private void Awake()
@@ -59,7 +60,7 @@ public class WorldManager : MonoBehaviour
             for (var z = playerChunk.z - generateDistance; z < playerChunk.z + generateDistance; ++z)
             {
                 var chunkPosition = new Vector3Int(x, 0, z);
-                if (!_chunks.ContainsKey(chunkPosition)) queue.Add(chunkPosition);
+                if (!chunks.ContainsKey(chunkPosition)) queue.Add(chunkPosition);
             }
         }
 
@@ -71,7 +72,7 @@ public class WorldManager : MonoBehaviour
                 foreach (var aboveOrBelow in new []{-1, 1})
                 {
                     var chunkPosition = new Vector3Int(x, playerChunk.y + aboveOrBelow, z);
-                    if (!_chunks.ContainsKey(chunkPosition)) queue.Add(chunkPosition);
+                    if (!chunks.ContainsKey(chunkPosition)) queue.Add(chunkPosition);
                 }
             }
         }
@@ -100,13 +101,13 @@ public class WorldManager : MonoBehaviour
     /// <returns>Coroutine</returns>
     private IEnumerator RemoveChunksAroundCoroutine(Vector3Int playerChunk, int distance)
     {
-        var keysToDelete = _chunks.Keys.ToArray();
+        var keysToDelete = chunks.Keys.ToArray();
         foreach (var key in keysToDelete)
         {
             if (Vector3Int.Distance(playerChunk, key) > deleteDistance)
             {
-                var chunk = _chunks[key];
-                _chunks.Remove(key);
+                var chunk = chunks[key];
+                chunks.Remove(key);
                 Destroy(chunk.gameObject);
                 yield return null;
             }            
@@ -120,7 +121,7 @@ public class WorldManager : MonoBehaviour
     /// <param name="worldPosition">Chunk space coordinates</param>
     private void AddChunk(Vector3Int worldPosition)
     {
-        if (_chunks.ContainsKey(worldPosition)) return;
+        if (chunks.ContainsKey(worldPosition)) return;
         
         var chunkObject = new GameObject(String.Format("Chunk ({0},{1},{2})", worldPosition.x, worldPosition.y, worldPosition.z));
         chunkObject.transform.parent = transform;
@@ -130,7 +131,7 @@ public class WorldManager : MonoBehaviour
         chunk.voxelTypes = voxelTypes;
         chunk.generator = _generator;
 
-        _chunks.Add(worldPosition, chunk);
+        chunks.Add(worldPosition, chunk);
     }
 
     /// <summary>
@@ -171,9 +172,9 @@ public class WorldManager : MonoBehaviour
             }
         }
 
-        if (!_chunks.ContainsKey(chunkToCheck)) return 0;
+        if (!chunks.ContainsKey(chunkToCheck)) return 0;
         
-        var chunk = _chunks[chunkToCheck];
+        var chunk = chunks[chunkToCheck];
         return chunk.Voxels[coordsInsideChunk.x, coordsInsideChunk.y, coordsInsideChunk.z];
     }
     
@@ -237,7 +238,7 @@ public class WorldManager : MonoBehaviour
             }
         }
         
-        var chunk = _chunks[chunkToCheck];
+        var chunk = chunks[chunkToCheck];
         chunk.modified = true;
         chunk.Voxels[coordsInsideChunk.x, coordsInsideChunk.y, coordsInsideChunk.z] = type;
         chunk.RegenerateMesh();

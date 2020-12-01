@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Security.Cryptography.X509Certificates;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.UI;
 
 public class PlayerController : MonoBehaviour
 {
@@ -16,6 +17,8 @@ public class PlayerController : MonoBehaviour
     public float playerWidth = 0.35f;
 
     public sbyte blockTypeSelected = 1;
+    public Image blockTypeSelectedIcon;
+    private Sprite blockTypeSprite;
     public GameObject cursorPrefab;
 
     public float maxMineBuildDistance = 5.0f;
@@ -45,7 +48,9 @@ public class PlayerController : MonoBehaviour
         _cursorScale = _cursor.transform.GetChild(0);
         _cursor.SetActive(false);
 
-        //Cursor.lockState = CursorLockMode.Locked;
+        Cursor.lockState = CursorLockMode.Locked;
+        
+        ChangeBuildIcon();
     }
 
     private void OnEnable()
@@ -58,58 +63,23 @@ public class PlayerController : MonoBehaviour
         _controls.Disable();
     }
 
-    /// <summary>
-    /// Sets the player movement direction
-    /// </summary>
-    /// <param name="controllerValue">A Vector2 value of controller</param>
-    private void Move(Vector2 controllerValue)
-    {
-        var worldDirection = transform.rotation * new Vector3(controllerValue.x, 0, controllerValue.y);
-        _moveDirection.x = worldDirection.x;
-        _moveDirection.z = worldDirection.z;
-    }
-
-    /// <summary>
-    /// Sets the player's jump direction
-    /// </summary>
-    private void Jump()
-    {
-        _moveDirection.y = 2;
-        _isGrounded = false;
-    }
     
     /// <summary>
-    /// Move the player in the direction of the camera
+    /// Checks if the current chunks the player is in is loaded
     /// </summary>
-    /// <param name="controllerValue">A Vector2 value of controller</param>
-    private void Look(Vector2 controllerValue)
+    /// <returns>Whether or not the chunk was loaded</returns>
+    private bool CurrentChunkLoaded()
     {
-        const float horizontalSensitivity = 30.0f;
-        const float verticalSensitivity = 30.0f;
- 
-        var rotationX = horizontalSensitivity * controllerValue.x * Time.deltaTime;
-        var rotationY = verticalSensitivity * controllerValue.y * Time.deltaTime;
- 
-        transform.Rotate(0,rotationX,0);
-        
-        var transform1 = playerCamera.transform;
-        var yaw = transform1.eulerAngles.x;
-        yaw -= rotationY;
-        if ((yaw + 180)%360 < 180-85)
-        {
-            yaw = -85;
-        }
-        if ((yaw + 180)%360 > 180+85)
-        {
-            yaw = 85;
-        }
-        transform1.eulerAngles = new Vector3(yaw, transform1.eulerAngles.y, 0);
+        return voxelWorld.chunks.ContainsKey(_currentChunk);
     }
-
+    
     // Update is called once per frame
     private void Update()
     {
+        
         CheckPosition();
+        
+        if (!CurrentChunkLoaded()) return;
         
         HandleMovement();
 
@@ -171,6 +141,55 @@ public class PlayerController : MonoBehaviour
 
         return false;
     }
+
+    /// <summary>
+    /// Sets the player movement direction
+    /// </summary>
+    /// <param name="controllerValue">A Vector2 value of controller</param>
+    private void Move(Vector2 controllerValue)
+    {
+        var worldDirection = transform.rotation * new Vector3(controllerValue.x, 0, controllerValue.y);
+        _moveDirection.x = worldDirection.x;
+        _moveDirection.z = worldDirection.z;
+    }
+
+    /// <summary>
+    /// Sets the player's jump direction
+    /// </summary>
+    private void Jump()
+    {
+        _moveDirection.y = 2;
+        _isGrounded = false;
+    }
+    
+    /// <summary>
+    /// Move the player in the direction of the camera
+    /// </summary>
+    /// <param name="controllerValue">A Vector2 value of controller</param>
+    private void Look(Vector2 controllerValue)
+    {
+        const float horizontalSensitivity = 30.0f;
+        const float verticalSensitivity = 30.0f;
+ 
+        var rotationX = horizontalSensitivity * controllerValue.x * Time.deltaTime;
+        var rotationY = verticalSensitivity * controllerValue.y * Time.deltaTime;
+ 
+        transform.Rotate(0,rotationX,0);
+        
+        var transform1 = playerCamera.transform;
+        var yaw = transform1.eulerAngles.x;
+        yaw -= rotationY;
+        if ((yaw + 180)%360 < 180-85)
+        {
+            yaw = -85;
+        }
+        if ((yaw + 180)%360 > 180+85)
+        {
+            yaw = 85;
+        }
+        transform1.eulerAngles = new Vector3(yaw, transform1.eulerAngles.y, 0);
+    }
+
 
     /// <summary>
     /// Hanndle the different inputs
@@ -289,7 +308,6 @@ public class PlayerController : MonoBehaviour
             for (var dim = 1; dim < 3; dim++)
             {
                 if (float.IsNaN(nextT[dim])) continue;
-                
                 if (nextT[dim] < t)
                 {
                     minDim = dim;
@@ -324,27 +342,49 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
+    /// Changes the sprite icon to show the current building material
+    /// </summary>
+    void ChangeBuildIcon()
+    {
+        var types = voxelWorld.voxelTypes;
+        var rect = types.GetAtlasFaceUvs(blockTypeSelected, 0);
+        rect.min *= types.atlas.width;
+        rect.max *= types.atlas.width;
+        Destroy(blockTypeSelectedIcon.sprite);
+        blockTypeSelectedIcon.sprite = Sprite.Create(types.atlas, 
+            rect, new Vector2(0.5f, 0.5f));
+    }
+    
+    /// <summary>
     /// Build or break a block
     /// </summary>
     private void HandleBuildBreak()
     {
         //Handle type selection
         var scroll = _controls.Player.SwitchBlock.ReadValue<Vector2>();
-        if (scroll.y > 0)
+        if (scroll.y != 0)
         {
-            blockTypeSelected += 1;
-            if (blockTypeSelected == voxelWorld.voxelTypes.typeDurability.Count) blockTypeSelected = 1;
+            if (scroll.y > 0)
+            {
+                blockTypeSelected += 1;
+                if (blockTypeSelected == voxelWorld.voxelTypes.typeDurability.Count) blockTypeSelected = 1;
+            }
+            else if (scroll.y < 0)
+            {
+                blockTypeSelected -= 1;
+                if (blockTypeSelected == 0)
+                    blockTypeSelected = (sbyte) (voxelWorld.voxelTypes.typeDurability.Count - 1);
+            }
+
+            ChangeBuildIcon();
         }
-        else if (scroll.y < 0)
-        {
-            blockTypeSelected -= 1;
-            if (blockTypeSelected == 0) blockTypeSelected = (sbyte)(voxelWorld.voxelTypes.typeDurability.Count - 1);
-        }
-        
+
         //Handle build
         if (_blockSelected && _controls.Player.Build.triggered)
         {
-            voxelWorld.SetVoxel(_blockPosToBuild, blockTypeSelected);
+            if (_blockPosToBuild != _voxelGridPosition + Vector3Int.up &&
+                _blockPosToBuild != _voxelGridPosition + Vector3Int.up * 2)
+                voxelWorld.SetVoxel(_blockPosToBuild, blockTypeSelected);
         }
         //Handle break
         else if (_blockSelected && _controls.Player.Break.ReadValue<float>() > 0)

@@ -30,9 +30,11 @@ void Unity_GradientNoise_float(float2 UV, float Scale, out float Out)
 // END SECTION
 
 RWStructuredBuffer<int> voxel_buffer;
-int3 buffer_size;
+uint3 buffer_size;
 
-int get_buffer_pos(int x, int y, int z)
+// Helper function to access the buffer, which represents a 3D chunk but is actually 1d
+// returns an index of the array
+inline int idx(int x, int y, int z)
 {
     return x * buffer_size.y * buffer_size.z + y * buffer_size.z + z;
 }
@@ -62,7 +64,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     hilly_terrain = hilly_terrain * 0.8f + 0.1f;
 
     float terrain_mix;
-    Unity_GradientNoise_float(column_position.xz, 0.007f, terrain_mix);
+    Unity_GradientNoise_float(column_position.xz + int2(100,100), 0.01f, terrain_mix);
     terrain_mix = clamp(terrain_mix * 2.0f - 1.0f, 0.0f, 1.0f);
     
     float final_terrain = lerp(smooth_terrain, hilly_terrain, terrain_mix);
@@ -71,6 +73,10 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     for (int y = 0; y < buffer_size.y; y++)
     {
         y += world_position.y * buffer_size.y;
-        voxel_buffer[get_buffer_pos(id.x, y, id.z)] = (y < final_terrain) + (y < final_terrain - 1);
+
+        int value = 0;
+        if (y - 1 < final_terrain) value = (y > 16) ? 4 : 1;
+        if (y < final_terrain) value = 2;
+        voxel_buffer[idx(id.x, y, id.z)] = value;
     }
 }
