@@ -52,6 +52,14 @@
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": ""
+                },
+                {
+                    "name": "SwitchBlock",
+                    "type": "Value",
+                    "id": "e9f7fc5c-6f69-4844-8e51-080f8b3885f6",
+                    "expectedControlType": "Vector2",
+                    "processors": "",
+                    "interactions": ""
                 }
             ],
             "bindings": [
@@ -327,6 +335,17 @@
                     "processors": "",
                     "groups": "Gamepad",
                     "action": "Escape",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "4e5221da-8720-4099-9259-6823d7f9c57c",
+                    "path": "<Mouse>/scroll",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "Keyboard&Mouse;Gamepad",
+                    "action": "SwitchBlock",
                     "isComposite": false,
                     "isPartOfComposite": false
                 }

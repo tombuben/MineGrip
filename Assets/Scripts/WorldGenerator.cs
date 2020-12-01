@@ -38,6 +38,22 @@ public class WorldGenerator : MonoBehaviour
     /// <param name="chunkData">Array to be populated with generated chunk</param>
     public void GenerateChunk(Vector3Int worldPosition, ref sbyte[,,] chunkData)
     {
+        if (worldPosition.y > 0)
+        {
+            // Above ground level the chunks are all empty
+            Array.Clear(chunkData, 0, chunkData.Length);
+            return;
+        }
+        else if (worldPosition.y < 0)
+        {
+            // below ground level the chunks are all stone
+            for (var x = 0; x < chunkData.GetLength(0); x++)
+                for (var y = 0; y < chunkData.GetLength(1); y++)
+                    for (var z = 0; z < chunkData.GetLength(2); z++)
+                        chunkData[x, y, z] = (sbyte) 3;
+            return;
+        }
+        
         if (generateUsingComputeShaders)
         {
             GenerateChunkGPU(worldPosition, ref chunkData);

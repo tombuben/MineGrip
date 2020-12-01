@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 [RequireComponent(typeof(WorldGenerator))]
@@ -8,6 +9,7 @@ public class WorldManager : MonoBehaviour
 {
     private static readonly Vector3Int CenterChunk = new Vector3Int(0, 0, 0);
     public int viewDistance = 5;
+    public int deleteDistance = 8;
     public int chunkSize = 32;
 
     public VoxelTypes voxelTypes;
@@ -38,11 +40,9 @@ public class WorldManager : MonoBehaviour
     /// Add chunks around a given chunk, using coroutines
     /// </summary>
     /// <param name="playerChunk">Chunk around which to generate chunks</param>
-    /// <param name="generateDistance">Distance in which chunks should be generated</param>
-    public void AddChunksAround(Vector3Int playerChunk, int generateDistance)
+    public void AddChunksAround(Vector3Int playerChunk)
     {
-        
-        StartCoroutine(AddChunksAroundCoroutine(playerChunk, generateDistance));
+        StartCoroutine(AddChunksAroundCoroutine(playerChunk, viewDistance));
     }
     
     /// <summary>
@@ -63,10 +63,53 @@ public class WorldManager : MonoBehaviour
             }
         }
 
+        
+        for (var x = playerChunk.x - 1; x <= playerChunk.x + 1; ++x)
+        {
+            for (var z = playerChunk.z - 1; z <= playerChunk.z + 1; ++z)
+            {
+                foreach (var aboveOrBelow in new []{-1, 1})
+                {
+                    var chunkPosition = new Vector3Int(x, playerChunk.y + aboveOrBelow, z);
+                    if (!_chunks.ContainsKey(chunkPosition)) queue.Add(chunkPosition);
+                }
+            }
+        }
+        
         foreach (var chunkPosition in queue)
         {
             AddChunk(chunkPosition);
             yield return null;
+        }
+    }
+
+    /// <summary>
+    /// Remove chunks outside delete distance, using coroutines
+    /// </summary>
+    /// <param name="playerChunk">Chunk around which to start deleting chunks</param>
+    public void RemoveChunksAround(Vector3Int playerChunk)
+    {
+        StartCoroutine(RemoveChunksAroundCoroutine(playerChunk, deleteDistance));
+    }
+
+    /// <summary>
+    /// Coroutine for deleting the chunks around a given chunk
+    /// </summary>
+    /// <param name="playerChunk">Chunk around which to center the deletion chunks</param>
+    /// <param name="generateDistance">Distance outside which chunks should be deleted</param>
+    /// <returns>Coroutine</returns>
+    private IEnumerator RemoveChunksAroundCoroutine(Vector3Int playerChunk, int distance)
+    {
+        var keysToDelete = _chunks.Keys.ToArray();
+        foreach (var key in keysToDelete)
+        {
+            if (Vector3Int.Distance(playerChunk, key) > deleteDistance)
+            {
+                var chunk = _chunks[key];
+                _chunks.Remove(key);
+                Destroy(chunk.gameObject);
+                yield return null;
+            }            
         }
     }
     

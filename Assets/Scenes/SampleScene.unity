@@ -271,8 +271,10 @@ MonoBehaviour:
   walkSpeed: 10
   gravity: 9.81
   playerWidth: 0.35
+  blockTypeSelected: 1
   cursorPrefab: {fileID: 2010128521016388478, guid: 191e5ef3f8d192747ba5330239f6f1c6,
     type: 3}
+  maxMineBuildDistance: 5
 --- !u!1 &1181596611
 GameObject:
   m_ObjectHideFlags: 0
@@ -498,7 +500,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1234639695}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.9, z: 0}
+  m_LocalPosition: {x: 0, y: 1.7, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 963194228}
@@ -534,8 +536,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: cba24721977dffb4d86eed741df92f91, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  CenterChunk: {x: 0, y: 0, z: 0}
-  viewDistance: 2
+  viewDistance: 5
+  deleteDistance: 8
   chunkSize: 32
   voxelTypes: {fileID: 11400000, guid: 38f0c94013475ab4cb7cbe7c25b7fe74, type: 2}
 --- !u!114 &1484371771
@@ -551,7 +553,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   shader: {fileID: 7200000, guid: 5d61839e4706ee2469f72ee7c6d5c5e6, type: 3}
-  generateUsingComputeShaders: 1
 --- !u!4 &1484371772
 Transform:
   m_ObjectHideFlags: 0

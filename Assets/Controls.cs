@@ -65,6 +65,14 @@ public class @Controls : IInputActionCollection, IDisposable
                     ""expectedControlType"": ""Button"",
                     ""processors"": """",
                     ""interactions"": """"
+                },
+                {
+                    ""name"": ""SwitchBlock"",
+                    ""type"": ""Value"",
+                    ""id"": ""e9f7fc5c-6f69-4844-8e51-080f8b3885f6"",
+                    ""expectedControlType"": ""Vector2"",
+                    ""processors"": """",
+                    ""interactions"": """"
                 }
             ],
             ""bindings"": [
@@ -342,6 +350,17 @@ public class @Controls : IInputActionCollection, IDisposable
                     ""action"": ""Escape"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""4e5221da-8720-4099-9259-6823d7f9c57c"",
+                    ""path"": ""<Mouse>/scroll"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse;Gamepad"",
+                    ""action"": ""SwitchBlock"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -417,6 +436,7 @@ public class @Controls : IInputActionCollection, IDisposable
         m_Player_Build = m_Player.FindAction("Build", throwIfNotFound: true);
         m_Player_Jump = m_Player.FindAction("Jump", throwIfNotFound: true);
         m_Player_Escape = m_Player.FindAction("Escape", throwIfNotFound: true);
+        m_Player_SwitchBlock = m_Player.FindAction("SwitchBlock", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -472,6 +492,7 @@ public class @Controls : IInputActionCollection, IDisposable
     private readonly InputAction m_Player_Build;
     private readonly InputAction m_Player_Jump;
     private readonly InputAction m_Player_Escape;
+    private readonly InputAction m_Player_SwitchBlock;
     public struct PlayerActions
     {
         private @Controls m_Wrapper;
@@ -482,6 +503,7 @@ public class @Controls : IInputActionCollection, IDisposable
         public InputAction @Build => m_Wrapper.m_Player_Build;
         public InputAction @Jump => m_Wrapper.m_Player_Jump;
         public InputAction @Escape => m_Wrapper.m_Player_Escape;
+        public InputAction @SwitchBlock => m_Wrapper.m_Player_SwitchBlock;
         public InputActionMap Get() { return m_Wrapper.m_Player; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -509,6 +531,9 @@ public class @Controls : IInputActionCollection, IDisposable
                 @Escape.started -= m_Wrapper.m_PlayerActionsCallbackInterface.OnEscape;
                 @Escape.performed -= m_Wrapper.m_PlayerActionsCallbackInterface.OnEscape;
                 @Escape.canceled -= m_Wrapper.m_PlayerActionsCallbackInterface.OnEscape;
+                @SwitchBlock.started -= m_Wrapper.m_PlayerActionsCallbackInterface.OnSwitchBlock;
+                @SwitchBlock.performed -= m_Wrapper.m_PlayerActionsCallbackInterface.OnSwitchBlock;
+                @SwitchBlock.canceled -= m_Wrapper.m_PlayerActionsCallbackInterface.OnSwitchBlock;
             }
             m_Wrapper.m_PlayerActionsCallbackInterface = instance;
             if (instance != null)
@@ -531,6 +556,9 @@ public class @Controls : IInputActionCollection, IDisposable
                 @Escape.started += instance.OnEscape;
                 @Escape.performed += instance.OnEscape;
                 @Escape.canceled += instance.OnEscape;
+                @SwitchBlock.started += instance.OnSwitchBlock;
+                @SwitchBlock.performed += instance.OnSwitchBlock;
+                @SwitchBlock.canceled += instance.OnSwitchBlock;
             }
         }
     }
@@ -588,5 +616,6 @@ public class @Controls : IInputActionCollection, IDisposable
         void OnBuild(InputAction.CallbackContext context);
         void OnJump(InputAction.CallbackContext context);
         void OnEscape(InputAction.CallbackContext context);
+        void OnSwitchBlock(InputAction.CallbackContext context);
     }
 }

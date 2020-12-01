@@ -15,7 +15,10 @@ public class PlayerController : MonoBehaviour
     public float gravity = 9.81f;
     public float playerWidth = 0.35f;
 
+    public sbyte blockTypeSelected = 1;
     public GameObject cursorPrefab;
+
+    public float maxMineBuildDistance = 5.0f;
     private GameObject _cursor;
     private Transform _cursorScale;
     
@@ -37,14 +40,12 @@ public class PlayerController : MonoBehaviour
     private void Awake()
     {
         _controls = new Controls();
-        //_controls.Player.Jump.performed += context => Jump(context);
 
         _cursor = Instantiate(cursorPrefab);
         _cursorScale = _cursor.transform.GetChild(0);
-        Debug.Log("scale: " + _cursorScale.localScale);
         _cursor.SetActive(false);
 
-        Cursor.lockState = CursorLockMode.Locked;
+        //Cursor.lockState = CursorLockMode.Locked;
     }
 
     private void OnEnable()
@@ -131,7 +132,8 @@ public class PlayerController : MonoBehaviour
         if (chunk != _currentChunk)
         {
             _currentChunk = chunk;
-            voxelWorld.AddChunksAround(chunk, 3);
+            voxelWorld.AddChunksAround(chunk);
+            voxelWorld.RemoveChunksAround(chunk);
         }
     }
 
@@ -140,26 +142,34 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private void CheckPosition()
     {
-        var pos = transform.position;
+        _isGrounded = CheckGivenPosition(transform.position);
+        
+        _voxelSpacePosition = voxelWorld.GetVoxelPoint(transform.position);
+        _voxelGridPosition = Vector3Int.FloorToInt(_voxelSpacePosition);
+    }
+
+    private bool CheckGivenPosition(Vector3 pos, Vector3 forward = default)
+    {
+        Vector3 forwardpoint = new Vector3();
+        if (forward != Vector3.zero)
+            forwardpoint = pos + forward.normalized * playerWidth;
         var positions = new Vector3[]
         {
             new Vector3(pos.x - playerWidth, pos.y, pos.z - playerWidth),
             new Vector3(pos.x - playerWidth, pos.y, pos.z + playerWidth),
             new Vector3(pos.x + playerWidth, pos.y, pos.z - playerWidth),
-            new Vector3(pos.x - playerWidth, pos.y, pos.z - playerWidth),
+            new Vector3(pos.x + playerWidth, pos.y, pos.z + playerWidth),
         };
 
-        
-        _isGrounded = false;
         foreach (var cornerPos in positions)
         {
+            if (forward != Vector3.zero && Vector3.Distance(forwardpoint, cornerPos) > playerWidth * 1.5f) continue;
             var cornerPoint = voxelWorld.GetVoxelPoint(cornerPos);
             var voxelCornerPoint = Vector3Int.FloorToInt(cornerPoint);
-            if (voxelWorld.IsSolidPoint(voxelCornerPoint)) _isGrounded = true;
+            if (voxelWorld.IsSolidPoint(voxelCornerPoint)) return true;
         }
-        
-        _voxelSpacePosition = voxelWorld.GetVoxelPoint(pos);
-        _voxelGridPosition = Vector3Int.FloorToInt(_voxelSpacePosition);
+
+        return false;
     }
 
     /// <summary>
@@ -189,80 +199,93 @@ public class PlayerController : MonoBehaviour
 
         if (_moveDirection.magnitude > 0)
         {
+            // Check for wall movement
             for (var i = _isGrounded ? 1 : 0; i < 3; i++)
             {
                 var positionToCheck = transform.position;
-                positionToCheck.y += i;
+                positionToCheck.y += i - 0.1f;
                 foreach (var dimension in new []{0,2})
                 {
-                    foreach (var direction in new[] {-1, 1})
-                    {
-                        var nextPos = positionToCheck;
-                        nextPos[dimension] += direction * playerWidth * 1.1f;
-                        var nextVoxelPoint = Vector3Int.FloorToInt(nextPos);
-                        if (voxelWorld.IsSolidPoint(nextVoxelPoint) && _moveDirection[dimension] * direction > 0)
-                            _moveDirection[dimension] = 0;
-                    }
+                    var nextPos = positionToCheck;
+                    nextPos[dimension] += _moveDirection[dimension] * Time.deltaTime * walkSpeed;
+                    if (CheckGivenPosition(nextPos, _moveDirection))
+                        _moveDirection[dimension] = 0;
+                    
                 }
             }
-
-            //TODO: add a ceiling check after building is finished
             
+            /// Check if head doesn't bump into an object
+            if (_moveDirection.y > 0)
+            {
+                var headPos = transform.position + Vector3.up * 0.5f + _moveDirection;
+                if (CheckGivenPosition(headPos))
+                    _moveDirection.y = 0;
+            }
+
             transform.position += _moveDirection * (Time.deltaTime * walkSpeed);
         }
     }
     
     /// <summary>
-    /// Updates the position of the cursor in scene - sends a ray
+    /// Updates the position of the cursor in scene - sends a ray through the scene using the 3D-DDA algorithm
     /// </summary>
     private void UpdateCursor()
     {
+        
         var cameraTransform = playerCamera.transform;
         var rayStart = cameraTransform.position;
         var rayDirection = cameraTransform.forward;
         var p0 = rayStart;
         var dir = rayDirection;
         
+        // t_0 - when using the parametric ray definition,
+        // the value of t for intersecting the nearest axis plane
         var t_0 = new Vector3(float.NaN, float.NaN, float.NaN);
+        
+        // t_0 - when using the parametric ray definition,
+        // the value of t for intersecting the second nearest axis plane
         var t_1 = new Vector3(float.NaN, float.NaN, float.NaN);
+        
+        // dt - the difference betewen t_1 and t_0 - a smallest step to
+        // move between two integer ray intersections of axis planes
         var dt = new Vector3(float.NaN, float.NaN, float.NaN);
         
-        //integer intersections with the axis planes
-
-        for (int dim = 0; dim < 3; dim++)
+        //calculating dt for each dimension
+        for (var dim = 0; dim < 3; dim++)
         {
-            if (rayDirection[dim] != 0.0f) 
-            {
-                // We're looking for first two integer intersections with the x plane t_x in the direction of the ray
-                var p_first = dir[dim] > 0 ? Mathf.Ceil(p0[dim]) : Mathf.Floor(p0[dim]);
-                var p_next = dir[dim] > 0 ? p_first + 1 : p_first - 1;
+            if (rayDirection[dim] == 0.0f) continue;
+            
+            // We're looking for first two integer intersections with the x plane t_x in the direction of the ray
+            var p_first = dir[dim] > 0 ? Mathf.Ceil(p0[dim]) : Mathf.Floor(p0[dim]);
+            var p_next = dir[dim] > 0 ? p_first + 1 : p_first - 1;
 
-                // Parametric equation of line:
-                // x = x0 + dir_x * t   ==>   t = (x - x0) / dir_x
-                t_0[dim] = (p_first - p0[dim]) / dir[dim];
-                t_1[dim] = (p_next - p0[dim]) / dir[dim];
+            // Parametric equation of line:
+            // x = x0 + dir_x * t   ==>   t = (x - x0) / dir_x
+            t_0[dim] = (p_first - p0[dim]) / dir[dim];
+            t_1[dim] = (p_next - p0[dim]) / dir[dim];
 
-                // how much must T move to get to the next integer value
-                dt[dim] = t_1[dim] - t_0[dim];
-            }
+            // how much must T move to get to the next integer value
+            dt[dim] = t_1[dim] - t_0[dim];
         }
 
-        const float cursorMaxT = 5.0f;
-
+        //First position we check is the first integer positions
         var nextT = t_0;
         var t = 0.0f;
         
+        
         var counter = 0;
-        while (t < cursorMaxT)
+        while (t < maxMineBuildDistance)
         {
-            if (counter++ > cursorMaxT * 3 + 1)
+            if (counter++ > maxMineBuildDistance * 3 + 1)
             {
-                Debug.Log("Too many steps!");
+                Debug.Log("Too many steps when raymarching inside 3D-DDA for cursor position!");
                 break;
             }
 
             var minDim = 0;
             t = nextT[0];
+            
+            //Find the smallest step to make and make it
             for (var dim = 1; dim < 3; dim++)
             {
                 if (float.IsNaN(nextT[dim])) continue;
@@ -275,14 +298,15 @@ public class PlayerController : MonoBehaviour
             }
             nextT[minDim] += dt[minDim];
             
-            var t_point = p0 + dir * (t+0.01f);
+            // Find the voxel point in the world
+            var t_point = p0 + dir * (t+0.001f);
             var voxelPoint = Vector3Int.FloorToInt(voxelWorld.GetVoxelPoint(t_point));
             if (voxelWorld.IsSolidPoint(voxelPoint))
             {
                 _blockSelected = true;
                 _blockPosToBreak = voxelPoint;
                 
-                var t_build = p0 + dir * (t-0.01f);
+                var t_build = p0 + dir * (t-0.001f);
                 _blockPosToBuild = Vector3Int.FloorToInt(voxelWorld.GetVoxelPoint(t_build));
 
                 _cursor.SetActive(true);
@@ -291,21 +315,41 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        if (t >= cursorMaxT)
+        // Hide cursor when not looking at anything
+        if (t >= maxMineBuildDistance)
         {
             _blockSelected = false;
             _cursor.SetActive(false);
         }
     }
 
+    /// <summary>
+    /// Build or break a block
+    /// </summary>
     private void HandleBuildBreak()
     {
+        //Handle type selection
+        var scroll = _controls.Player.SwitchBlock.ReadValue<Vector2>();
+        if (scroll.y > 0)
+        {
+            blockTypeSelected += 1;
+            if (blockTypeSelected == voxelWorld.voxelTypes.typeDurability.Count) blockTypeSelected = 1;
+        }
+        else if (scroll.y < 0)
+        {
+            blockTypeSelected -= 1;
+            if (blockTypeSelected == 0) blockTypeSelected = (sbyte)(voxelWorld.voxelTypes.typeDurability.Count - 1);
+        }
+        
+        //Handle build
         if (_blockSelected && _controls.Player.Build.triggered)
         {
-            voxelWorld.SetVoxel(_blockPosToBuild, 1);
+            voxelWorld.SetVoxel(_blockPosToBuild, blockTypeSelected);
         }
+        //Handle break
         else if (_blockSelected && _controls.Player.Break.ReadValue<float>() > 0)
         {
+            
             if (_currentlyBreaking != _blockPosToBreak)
             {
                 _currentlyBreaking = _blockPosToBreak;
