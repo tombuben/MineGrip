@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Linq;
 using UnityEngine;
 
@@ -17,10 +19,15 @@ public class VoxelChunk : MonoBehaviour
 
     private MeshRenderer _meshRenderer;
     private MeshFilter _meshFilter;
-    
+
     private const uint ChunkSize = 32;
-    
+
     public sbyte[,,] Voxels;
+    public bool modified = false;
+
+    private string savePath =>
+        Application.persistentDataPath + "/" + worldPosition.x + "." + worldPosition.y + "." +
+        worldPosition.z + ".chunk";
 
     private void Awake()
     {
@@ -31,17 +38,54 @@ public class VoxelChunk : MonoBehaviour
     private void Start()
     {
         _meshRenderer.material = voxelTypes.material;
-        GenerateVoxels();
+        
+        if (!LoadChunk())
+            GenerateVoxels();
+        
         _meshFilter.mesh = CreateMesh();
     }
 
+    private void OnDestroy()
+    {
+        if (modified)
+            SaveChunk();
+    }
+
+    private void SaveChunk()
+    {
+        var bf = new BinaryFormatter();
+        using (var ms = new MemoryStream())
+        {
+            bf.Serialize(ms, Voxels);
+            var byteArr = ms.ToArray();
+            File.WriteAllBytes(savePath, byteArr);
+        }
+    }
+
+    private bool LoadChunk()
+    {
+        if (!File.Exists(savePath)) return false;
+        
+        var byteArr = File.ReadAllBytes(savePath);
+        using (var memStream = new MemoryStream())
+        {
+            var binForm = new BinaryFormatter();
+            memStream.Write(byteArr, 0, byteArr.Length);
+            memStream.Seek(0, SeekOrigin.Begin);
+            var obj = binForm.Deserialize(memStream);
+            Voxels = obj as sbyte[,,];
+            return true;
+        }
+    }
+
+    
     /// <summary>
     /// Generates the voxel data
     /// </summary>
     public void GenerateVoxels()
     {
         Voxels = new sbyte[ChunkSize, ChunkSize, ChunkSize];
-        
+
         if (generator != null)
             generator.GenerateChunk(worldPosition, ref Voxels);
         else
@@ -57,7 +101,7 @@ public class VoxelChunk : MonoBehaviour
             }
         }
     }
-    
+
     /// <summary>
     /// Regenerates the current mesh based on the voxel data
     /// </summary>
@@ -65,9 +109,9 @@ public class VoxelChunk : MonoBehaviour
     {
         Destroy(_meshFilter.mesh);
         _meshFilter.mesh = CreateMesh();
-    } 
-    
-    
+    }
+
+
     /// <summary>
     /// Create a single mesh from the _voxels data structure.
     /// </summary>
@@ -79,19 +123,19 @@ public class VoxelChunk : MonoBehaviour
 
         UnityEngine.Profiling.Profiler.BeginSample("CreateMesh.AddingCubes");
         for (var x = 0; x < ChunkSize; x++)
-            for (var y = 0; y < ChunkSize; y++)
-                for (var z = 0; z < ChunkSize; z++)
-                    if (Voxels[x,y,z] != 0)
-                        AddCubeToMesh(new Vector3(x, y, z), Voxels[x,y,z], ref vertices, ref uvs);
+        for (var y = 0; y < ChunkSize; y++)
+        for (var z = 0; z < ChunkSize; z++)
+            if (Voxels[x, y, z] != 0)
+                AddCubeToMesh(new Vector3(x, y, z), Voxels[x, y, z], ref vertices, ref uvs);
         UnityEngine.Profiling.Profiler.EndSample();
-        
+
         var mesh = new Mesh();
         mesh.vertices = vertices.ToArray();
         mesh.triangles = Enumerable.Range(0, vertices.Count).ToArray();
         mesh.uv = uvs.ToArray();
-        
+
         mesh.RecalculateNormals();
-        
+
         return mesh;
     }
 
@@ -116,16 +160,16 @@ public class VoxelChunk : MonoBehaviour
                 pos.z + CubeFaces.WallDirection[face].z < 0 ||
                 pos.z + CubeFaces.WallDirection[face].z >= ChunkSize ||
                 Voxels[
-                    (int)(pos.x + CubeFaces.WallDirection[face].x),
-                    (int)(pos.y + CubeFaces.WallDirection[face].y),
-                    (int)(pos.z + CubeFaces.WallDirection[face].z)] == 0)
+                    (int) (pos.x + CubeFaces.WallDirection[face].x),
+                    (int) (pos.y + CubeFaces.WallDirection[face].y),
+                    (int) (pos.z + CubeFaces.WallDirection[face].z)] == 0)
             {
                 for (var i = 0; i < 6; i++)
                 {
                     var index = CubeFaces.FaceIndices[face, i];
                     vertices.Add(CubeFaces.Vertices[index] + pos);
                     uvs.Add(voxelTypes.AtlasCubeFaceUvs[voxelTypes.GetAtlasPosition(type, face), i]);
-                }      
+                }
             }
         }
     }

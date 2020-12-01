@@ -43,6 +43,8 @@ public class PlayerController : MonoBehaviour
         _cursorScale = _cursor.transform.GetChild(0);
         Debug.Log("scale: " + _cursorScale.localScale);
         _cursor.SetActive(false);
+
+        Cursor.lockState = CursorLockMode.Locked;
     }
 
     private void OnEnable()

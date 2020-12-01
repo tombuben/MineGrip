@@ -6,15 +6,14 @@ using UnityEngine;
 [RequireComponent(typeof(WorldGenerator))]
 public class WorldManager : MonoBehaviour
 {
-    public Vector3Int CenterChunk = new Vector3Int(0, 0, 0);
+    private static readonly Vector3Int CenterChunk = new Vector3Int(0, 0, 0);
     public int viewDistance = 5;
     public int chunkSize = 32;
 
     public VoxelTypes voxelTypes;
     private WorldGenerator _generator;
-    
-    public class Vector3IntComparer : IEqualityComparer<Vector3Int>{
-     
+
+    private class Vector3IntComparer : IEqualityComparer<Vector3Int>{
         public bool Equals(Vector3Int vec1, Vector3Int vec2) {
             return vec1.x == vec2.x && vec1.y == vec2.y && vec1.z == vec2.z;
         }
@@ -23,8 +22,6 @@ public class WorldManager : MonoBehaviour
             return vec.x ^ vec.y << 2 ^ vec.z >> 2;
         }
     }
-
-    
     private Dictionary<Vector3Int, VoxelChunk> _chunks = new Dictionary<Vector3Int, VoxelChunk>(new Vector3IntComparer());
 
     
@@ -37,13 +34,24 @@ public class WorldManager : MonoBehaviour
     }
 
 
+    /// <summary>
+    /// Add chunks around a given chunk, using coroutines
+    /// </summary>
+    /// <param name="playerChunk">Chunk around which to generate chunks</param>
+    /// <param name="generateDistance">Distance in which chunks should be generated</param>
     public void AddChunksAround(Vector3Int playerChunk, int generateDistance)
     {
         
         StartCoroutine(AddChunksAroundCoroutine(playerChunk, generateDistance));
     }
     
-    public IEnumerator AddChunksAroundCoroutine(Vector3Int playerChunk, int generateDistance)
+    /// <summary>
+    /// Coroutine for generating the chunks around a given chunk
+    /// </summary>
+    /// <param name="playerChunk">Chunk around which to generate chunks</param>
+    /// <param name="generateDistance">Distance in which chunks should be generated</param>
+    /// <returns>Coroutine</returns>
+    private IEnumerator AddChunksAroundCoroutine(Vector3Int playerChunk, int generateDistance)
     {
         var queue = new List<Vector3Int>();
         for (var x = playerChunk.x - generateDistance; x < playerChunk.x + generateDistance; ++x)
@@ -63,7 +71,10 @@ public class WorldManager : MonoBehaviour
     }
     
     
-    
+    /// <summary>
+    /// Add a chunk to the world
+    /// </summary>
+    /// <param name="worldPosition">Chunk space coordinates</param>
     private void AddChunk(Vector3Int worldPosition)
     {
         if (_chunks.ContainsKey(worldPosition)) return;
@@ -79,16 +90,21 @@ public class WorldManager : MonoBehaviour
         _chunks.Add(worldPosition, chunk);
     }
 
+    /// <summary>
+    /// Get voxel space coordinates of a world space point
+    /// </summary>
+    /// <param name="worldPoint">World space coordinates</param>
+    /// <returns>Voxel space coordinates</returns>
     public Vector3 GetVoxelPoint(Vector3 worldPoint)
     {
         return transform.InverseTransformPoint(worldPoint);
     }
 
     /// <summary>
-    /// 
+    /// get world space coordinates of a voxel point
     /// </summary>
-    /// <param name="voxelPoint"></param>
-    /// <returns></returns>
+    /// <param name="voxelPoint">Voxel space coordinates</param>
+    /// <returns>World space coordinates</returns>
     public Vector3 GetWorldPoint(Vector3 voxelPoint)
     {
         return transform.TransformPoint(voxelPoint);
@@ -179,6 +195,7 @@ public class WorldManager : MonoBehaviour
         }
         
         var chunk = _chunks[chunkToCheck];
+        chunk.modified = true;
         chunk.Voxels[coordsInsideChunk.x, coordsInsideChunk.y, coordsInsideChunk.z] = type;
         chunk.RegenerateMesh();
     }

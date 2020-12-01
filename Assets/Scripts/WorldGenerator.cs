@@ -8,7 +8,7 @@ using UnityEngine;
 public class WorldGenerator : MonoBehaviour
 {
     public ComputeShader shader = null;
-    public bool generateUsingComputeShaders = true;
+    private bool generateUsingComputeShaders = true;
 
     private int _kernelHandle;
     private uint _kernelThreadsX, _kernelThreadsY, _kernelThreadsZ;
@@ -32,7 +32,7 @@ public class WorldGenerator : MonoBehaviour
     }
     
     /// <summary>
-    /// Generates a given chunk on the GPU, throws a NotImplementedException if Compute Shaders not available and enabled
+    /// Generates a given chunk on the GPU, throws a NotImplementedException if Compute Shaders not available or enabled
     /// </summary>
     /// <param name="worldPosition">Position of the chunk in the world</param>
     /// <param name="chunkData">Array to be populated with generated chunk</param>
@@ -44,7 +44,7 @@ public class WorldGenerator : MonoBehaviour
         }
         else
         {
-            Debug.LogError("CPU generation not implemented yet!");
+            Debug.LogError("CPU generation not implemented!");
             throw new NotImplementedException("WebGL is not a target platform, so CPU generation not implemented");
         }
     }
