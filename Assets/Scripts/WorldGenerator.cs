@@ -50,7 +50,7 @@ public class WorldGenerator : MonoBehaviour
             for (var x = 0; x < chunkData.GetLength(0); x++)
                 for (var y = 0; y < chunkData.GetLength(1); y++)
                     for (var z = 0; z < chunkData.GetLength(2); z++)
-                        chunkData[x, y, z] = (sbyte) 3;
+                        chunkData[x, y, z] = (sbyte) 6;
             return;
         }
         

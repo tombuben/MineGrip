@@ -69,14 +69,49 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     
     float final_terrain = lerp(smooth_terrain, hilly_terrain, terrain_mix);
 
-    final_terrain *= buffer_size.y;    
+    int floor_level = 0;
+    int floor_type = 0;
+    
+    final_terrain *= buffer_size.y;
+
+    // Filling the buffer with terrain
     for (int y = 0; y < buffer_size.y; y++)
     {
         y += world_position.y * buffer_size.y;
 
         int value = 0;
-        if (y - 1 < final_terrain) value = (y > 16) ? 4 : 1;
-        if (y < final_terrain) value = 2;
+        if (y - 1 < final_terrain)
+        {
+            value = (y > 16) ? 3 : ((y > 5) ? 1 : 2);            
+            floor_level = y; floor_type = value;
+        }
+        if (y < final_terrain) value = 4;
+        if (y < final_terrain * 0.2) value = 5;
+        
         voxel_buffer[idx(id.x, y, id.z)] = value;
+    }
+    
+    GroupMemoryBarrierWithGroupSync();
+
+    // Select random thread to generate tree/cactus
+    if (frac(sin(dot(id.xz ,float2( 3.212,6.115)))*53.8856) > 0.99)
+    {
+        if (floor_type == 2) // Cactus
+        {
+            for (int y = floor_level + 1; y < floor_level + 4; y++)
+                voxel_buffer[idx(id.x, y, id.z)] = 11;
+        }
+        if (floor_type == 1 && floor_level < 10) // Tree
+        {
+            // Leaves
+            for (int y = floor_level + 3; y < floor_level + 6; y++)
+                for (int x = -1; x <= 1; x++)
+                    for (int z = -1; z <= 1; z++)
+                        voxel_buffer[idx(id.x + x, y, id.z + z)] = 9;
+            
+            // Trunk
+            for (int y = floor_level + 1; y < floor_level + 4; y++)
+                voxel_buffer[idx(id.x, y, id.z)] = 10;
+        }
     }
 }
