@@ -176,8 +176,8 @@ public class PlayerController : MonoBehaviour
  
         transform.Rotate(0,rotationX,0);
         
-        var transform1 = playerCamera.transform;
-        var yaw = transform1.eulerAngles.x;
+        var trans = playerCamera.transform;
+        var yaw = trans.eulerAngles.x;
         yaw -= rotationY;
         if ((yaw + 180)%360 < 180-85)
         {
@@ -187,7 +187,7 @@ public class PlayerController : MonoBehaviour
         {
             yaw = 85;
         }
-        transform1.eulerAngles = new Vector3(yaw, transform1.eulerAngles.y, 0);
+        trans.eulerAngles = new Vector3(yaw, trans.eulerAngles.y, 0);
     }
 
 
@@ -241,7 +241,9 @@ public class PlayerController : MonoBehaviour
                     _moveDirection.y = 0;
             }
 
-            transform.position += _moveDirection * (Time.deltaTime * walkSpeed);
+            var appliedMove = _moveDirection * (Time.deltaTime * walkSpeed);
+            if (appliedMove.y < -0.8f) appliedMove.y = -0.8f;
+            transform.position += appliedMove;
         }
     }
     
@@ -297,7 +299,7 @@ public class PlayerController : MonoBehaviour
         {
             if (counter++ > maxMineBuildDistance * 3 + 1)
             {
-                Debug.Log("Too many steps when raymarching inside 3D-DDA for cursor position!");
+                Debug.Log("Too many steps when raymarching inside 3D-DDA for cursor position, this shouldn't happen!");
                 break;
             }
 

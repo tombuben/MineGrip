@@ -119,7 +119,9 @@ public class VoxelChunk : MonoBehaviour
     private Mesh CreateMesh()
     {
         var vertices = new List<Vector3>();
+        vertices.Capacity = 30000;
         var uvs = new List<Vector2>();
+        uvs.Capacity = 30000;
 
         UnityEngine.Profiling.Profiler.BeginSample("CreateMesh.AddingCubes");
         for (var x = 0; x < ChunkSize; x++)
