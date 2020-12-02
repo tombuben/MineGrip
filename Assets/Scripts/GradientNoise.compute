@@ -1,6 +1,8 @@
 ﻿#pragma kernel CSMain
 
-// SECTION generated code from the unity gradient noise node
+// SECTION generated code from the unity gradient noise node for a more
+// complex scene, a better noise implementation could be more useful (3d
+// simplex noise), but this is fast and produces good enough results
 // https://docs.unity3d.com/Packages/com.unity.shadergraph@10.2/manual/Gradient-Noise-Node.html
 float2 unity_gradientNoise_dir(float2 p)
 {
@@ -54,6 +56,11 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     column_position.x = (int)id.x + world_position.x * buffer_size.x;
     column_position.z = (int)id.z + world_position.z * buffer_size.z;
 
+
+    // The terrain is just two differently scaled instances of noise mixed
+    // together, no octaves or ridges or anything special. Fractal noise
+    // would be pretty, but the voxel resolution is IMO relatively low, so
+    // it probably wouldn't be visible unless we generated large mountains
     
     float smooth_terrain;
     Unity_GradientNoise_float(column_position.xz, 0.02f, smooth_terrain);
@@ -66,7 +73,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     float terrain_mix;
     Unity_GradientNoise_float(column_position.xz + int2(100,100), 0.01f, terrain_mix);
     terrain_mix = clamp(terrain_mix * 2.0f - 1.0f, 0.0f, 1.0f);
-    
+
     float final_terrain = lerp(smooth_terrain, hilly_terrain, terrain_mix);
 
     int floor_level = 0;
@@ -90,8 +97,8 @@ void CSMain (uint3 id : SV_DispatchThreadID)
         
         voxel_buffer[idx(id.x, y, id.z)] = value;
     }
-    
-    GroupMemoryBarrierWithGroupSync();
+
+    GroupMemoryBarrierWithGroupSync(); // Plant trees only after all terrain is written
 
     // Select random thread to generate tree/cactus
     if (frac(sin(dot(id.xz ,float2( 3.212,6.115)))*53.8856) > 0.99)

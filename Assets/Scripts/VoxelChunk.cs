@@ -51,6 +51,9 @@ public class VoxelChunk : MonoBehaviour
             SaveChunk();
     }
 
+    /// <summary>
+    /// Dumps the chunk on the disk
+    /// </summary>
     private void SaveChunk()
     {
         var bf = new BinaryFormatter();
@@ -62,6 +65,10 @@ public class VoxelChunk : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Tries to load the chunk from the disk
+    /// </summary>
+    /// <returns>Was the chunk loaded from the disk</returns>
     private bool LoadChunk()
     {
         if (!File.Exists(savePath)) return false;
@@ -78,7 +85,6 @@ public class VoxelChunk : MonoBehaviour
         }
     }
 
-    
     /// <summary>
     /// Generates the voxel data
     /// </summary>
@@ -110,8 +116,7 @@ public class VoxelChunk : MonoBehaviour
         Destroy(_meshFilter.mesh);
         _meshFilter.mesh = CreateMesh();
     }
-
-
+    
     /// <summary>
     /// Create a single mesh from the _voxels data structure.
     /// </summary>

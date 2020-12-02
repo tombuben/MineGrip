@@ -76,6 +76,12 @@ public class VoxelTypesEditor : Editor
         serializedObject.ApplyModifiedProperties();
     }
 
+    /// <summary>
+    /// One row of the voxel type selector - allows picking of separate textures for each face of the block + durability 
+    /// </summary>
+    /// <param name="typeNum"></param>
+    /// <param name="previewSize"></param>
+    /// <param name="padding"></param>
     private void VoxelTextureSelector(int typeNum, int previewSize, int padding)
     {
         var rect = EditorGUILayout.GetControlRect(false, previewSize);

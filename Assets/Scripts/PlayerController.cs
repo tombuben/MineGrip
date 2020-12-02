@@ -6,6 +6,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
+/// <summary>
+/// Controller for a player, allows for movement and buildding/breaking of blocks
+/// </summary>
 public class PlayerController : MonoBehaviour
 {
     public Camera playerCamera;
@@ -248,7 +251,9 @@ public class PlayerController : MonoBehaviour
     }
     
     /// <summary>
-    /// Updates the position of the cursor in scene - sends a ray through the scene using the 3D-DDA algorithm
+    /// Updates the position of the cursor in scene.
+    ///
+    /// Sends a ray through the scene using the 3D-DDA algorithm.
     /// </summary>
     private void UpdateCursor()
     {
@@ -321,6 +326,8 @@ public class PlayerController : MonoBehaviour
             // Find the voxel point in the world
             var t_point = p0 + dir * (t+0.001f);
             var voxelPoint = Vector3Int.FloorToInt(voxelWorld.GetVoxelPoint(t_point));
+            
+            //If the point is solid, set the cursor position there and set the break/build coordinates
             if (voxelWorld.IsSolidPoint(voxelPoint))
             {
                 _blockSelected = true;
