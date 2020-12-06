@@ -70,7 +70,7 @@ public class VoxelTypes : ScriptableObject
     /// </summary>
     /// <param name="atlasPosition">Position in the atlas (starts in bottom left)</param>
     /// <returns></returns>
-    private Rect GetAtlasPositionUvs(int atlasPosition)
+    public Rect GetAtlasPositionUvs(int atlasPosition)
     {
         if (texturePerSide <= 0) texturePerSide = 1;
         var lenght = 1.0f / texturePerSide;

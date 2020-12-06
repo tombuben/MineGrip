@@ -52,6 +52,7 @@ public class PlayerController : MonoBehaviour
         _cursor.SetActive(false);
 
         Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
         
         ChangeBuildIcon();
     }
@@ -96,8 +97,7 @@ public class PlayerController : MonoBehaviour
             Application.Quit();
 #endif
 #if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPaused = true;
-            //UnityEditor.EditorApplication.isPlaying = false;
+            UnityEditor.EditorApplication.isPlaying = false;
 #endif
         }
         
@@ -108,15 +108,21 @@ public class PlayerController : MonoBehaviour
             voxelWorld.AddChunksAround(chunk);
             voxelWorld.RemoveChunksAround(chunk);
         }
+
+        _isGrounded = CheckGivenPosition(transform.position);
+        if (_isGrounded){
+            CheckPosition();
+            var position = transform.position;
+            position.y = voxelWorld.GetWorldPoint(_voxelGridPosition).y + 0.9999f;
+            transform.position = position;
+        }
     }
 
     /// <summary>
     /// Update the positions that are checked
     /// </summary>
     private void CheckPosition()
-    {
-        _isGrounded = CheckGivenPosition(transform.position);
-        
+    {        
         _voxelSpacePosition = voxelWorld.GetVoxelPoint(transform.position);
         _voxelGridPosition = Vector3Int.FloorToInt(_voxelSpacePosition);
     }
@@ -209,9 +215,6 @@ public class PlayerController : MonoBehaviour
         else if (_moveDirection.y < 0)
         {
             _moveDirection.y = 0;
-            var position = transform.position;
-            position.y = voxelWorld.GetWorldPoint(_voxelGridPosition).y + 0.99f;
-            transform.position = position;
         }
         
         if (_controls.Player.Jump.triggered && _isGrounded)

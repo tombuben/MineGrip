@@ -82,7 +82,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     final_terrain *= buffer_size.y;
 
     // Filling the buffer with terrain
-    for (int y = 0; y < buffer_size.y; y++)
+    for (int y = 0; y < (int)buffer_size.y; y++)
     {
         y += world_position.y * buffer_size.y;
 
@@ -117,8 +117,8 @@ void CSMain (uint3 id : SV_DispatchThreadID)
                         voxel_buffer[idx(id.x + x, y, id.z + z)] = 9;
             
             // Trunk
-            for (int y = floor_level + 1; y < floor_level + 4; y++)
-                voxel_buffer[idx(id.x, y, id.z)] = 10;
+            for (int _y = floor_level + 1; _y < floor_level + 4; _y++)
+                voxel_buffer[idx(id.x, _y, id.z)] = 10;
         }
     }
 }
