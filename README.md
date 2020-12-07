@@ -2,9 +2,11 @@
 
 ![](Screen.png?raw=true)
 
+
 Contains a small world being generated, allows for building blocks and mining.
 The world generation itself is done using compute shaders, while the rest of the
-sandbox is running inside the main Unity thread.
+sandbox is running inside the main Unity thread. You can download the latest build in
+[the releases tab](https://github.com/tombuben/MineGrip/releases).
 
 The game world state modifications are saved on Windows to a file
 in ```%APPDATA%\LocalLow\tombuben\MineGrip```,
