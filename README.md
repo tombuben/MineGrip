@@ -1,5 +1,7 @@
 # A simple mining and crafting game
 
+![](Screen.png?raw=true)
+
 Contains a small world being generated, allows for building blocks and mining.
 The world generation itself is done using compute shaders, while the rest of the
 sandbox is running inside the main Unity thread.
